@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureScan Pro - Web Vulnerability Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .scanner-panel, .results-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .panel-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        input[type="url"], input[type="email"], select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input[type="url"]:focus, input[type="email"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            background: #e9ecef;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .scan-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .scan-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e8ed;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .results-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border-radius: 10px;
+        }
+
+        .vulnerability-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid;
+            animation: slideIn 0.5s ease;
+        }
+
+        .vulnerability-item.critical {
+            background: #fee;
+            border-color: #e74c3c;
+        }
+
+        .vulnerability-item.high {
+            background: #fef5e7;
+            border-color: #f39c12;
+        }
+
+        .vulnerability-item.medium {
+            background: #fff3cd;
+            border-color: #f1c40f;
+        }
+
+        .vulnerability-item.low {
+            background: #d4edda;
+            border-color: #27ae60;
+        }
+
+        .vulnerability-item.info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+        }
+
+        .vuln-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vuln-severity {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .severity-critical { background: #e74c3c; color: white; }
+        .severity-high { background: #f39c12; color: white; }
+        .severity-medium { background: #f1c40f; color: #2c3e50; }
+        .severity-low { background: #27ae60; color: white; }
+        .severity-info { background: #17a2b8; color: white; }
+
+        .vuln-details {
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .vuln-payload {
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-top: 8px;
+            word-break: break-all;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .email-status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .email-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .email-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .scanning {
+            animation: pulse 2s infinite;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ SecureScan Pro</h1>
+            <p>Advanced Web Application Vulnerability Scanner</p>
+        </div>
+
+        <div class="main-content">
+            <div class="scanner-panel">
+                <h2 class="panel-title">
+                    🔍 Scanner Configuration
+                </h2>
+                
+                <form id="scanForm">
+                    <div class="form-group">
+                        <label for="targetUrl">Target URL</label>
+                        <input type="url" id="targetUrl" placeholder="https://example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="emailAlert">Email Alert</label>
+                        <input type="email" id="emailAlert" placeholder="security@company.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Vulnerability Types</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="sqli" checked>
+                                <label for="sqli">SQL Injection</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="xss" checked>
+                                <label for="xss">Cross-Site Scripting</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="lfi" checked>
+                                <label for="lfi">Local File Inclusion</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="rfi" checked>
+                                <label for="rfi">Remote File Inclusion</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="xxe" checked>
+                                <label for="xxe">XML External Entity</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="csrf" checked>
+                                <label for="csrf">CSRF</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="openRedirect" checked>
+                                <label for="openRedirect">Open Redirect</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="cmdInjection" checked>
+                                <label for="cmdInjection">Command Injection</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="directoryTraversal" checked>
+                                <label for="directoryTraversal">Directory Traversal</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="ldapInjection" checked>
+                                <label for="ldapInjection">LDAP Injection</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="scan-button" id="scanButton">
+                        🚀 Start Security Scan
+                    </button>
+                    
+                    <div class="loading-spinner" id="loadingSpinner"></div>
+                </form>
+
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="email-status" id="emailStatus"></div>
+            </div>
+
+            <div class="results-panel">
+                <h2 class="panel-title">
+                    📊 Scan Results
+                </h2>
+
+                <div class="stats-container" id="statsContainer">
+                    <div class="stat-item">
+                        <div class="stat-number" id="criticalCount">0</div>
+                        <div class="stat-label">Critical</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="highCount">0</div>
+                        <div class="stat-label">High</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="mediumCount">0</div>
+                        <div class="stat-label">Medium</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="lowCount">0</div>
+                        <div class="stat-label">Low</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="infoCount">0</div>
+                        <div class="stat-label">Info</div>
+                    </div>
+                </div>
+
+                <div class="results-container" id="resultsContainer">
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <h3>No scan results yet</h3>
+                        <p>Configure your scan settings and click "Start Security Scan" to begin</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const vulnerabilityPayloads = {
+            sqli: [
+                "' OR '1'='1' --",
+                "' UNION SELECT null, version(), null --",
+                "'; DROP TABLE users; --",
+                "' OR 1=1 /*",
+                "admin'--",
+                "' OR 'x'='x",
+                "1' AND (SELECT COUNT(*) FROM sysobjects) > 0 --",
+                "' UNION ALL SELECT @@version --"
+            ],
+            xss: [
+                "<script>alert('XSS')</script>",
+                "<img src=x onerror=alert('XSS')>",
+                "<svg onload=alert('XSS')>",
+                "javascript:alert('XSS')",
+                "<iframe src=javascript:alert('XSS')>",
+                "<body onload=alert('XSS')>",
+                "<input onfocus=alert('XSS') autofocus>",
+                "<marquee onstart=alert('XSS')>"
+            ],
+            lfi: [
+                "../../../etc/passwd",
+                "..\\..\\..\\windows\\system32\\drivers\\etc\\hosts",
+                "/proc/self/environ",
+                "../../../var/log/apache2/access.log",
+                "....//....//....//etc/passwd",
+                "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd",
+                "php://filter/read=convert.base64-encode/resource=index.php"
+            ],
+            rfi: [
+                "http://evil.com/shell.txt",
+                "ftp://attacker.com/backdoor.php",
+                "https://malicious-site.com/webshell.txt",
+                "http://127.0.0.1/malicious.php"
+            ],
+            xxe: [
+                '<?xml version="1.0"?><!DOCTYPE root [<!ENTITY test SYSTEM "file:///etc/passwd">]><root>&test;</root>',
+                '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE foo [<!ELEMENT foo ANY><!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>',
+                '<!DOCTYPE test [ <!ENTITY % init SYSTEM "data://text/plain;base64,ZmlsZTovLy9ldGMvcGFzc3dk"> %init; ]><test></test>'
+            ],
+            csrf: [
+                '<form action="http://target.com/transfer" method="POST"><input name="amount" value="1000"><input name="to" value="attacker"></form>',
+                '<img src="http://target.com/delete?id=1">',
+                '<iframe src="http://target.com/admin/delete"></iframe>'
+            ],
+            openRedirect: [
+                "http://target.com/redirect?url=http://evil.com",
+                "//evil.com",
+                "https://evil.com",
+                "javascript:alert('redirect')",
+                "data:text/html,<script>alert('redirect')</script>"
+            ],
+            cmdInjection: [
+                "; ls -la",
+                "| whoami",
+                "&& cat /etc/passwd",
+                "`id`",
+                "$(whoami)",
+                "; ping -c 4 127.0.0.1",
+                "| netstat -an"
+            ],
+            directoryTraversal: [
+                "../../../etc/passwd",
+                "..\\..\\..\\windows\\system32\\config\\sam",
+                "....//....//....//etc/shadow",
+                "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd",
+                "../../../../../../var/log/apache2/access.log"
+            ],
+            ldapInjection: [
+                "*)(uid=*))(|(uid=*",
+                "*)(|(password=*))",
+                "admin)(&(password=*))",
+                "*)(cn=*))(|(cn=*"
+            ]
+        };
+
+        const vulnerabilityDescriptions = {
+            sqli: "SQL Injection vulnerability allows attackers to execute malicious SQL queries",
+            xss: "Cross-Site Scripting allows injection of malicious scripts into web pages",
+            lfi: "Local File Inclusion allows reading local files from the server",
+            rfi: "Remote File Inclusion allows inclusion of remote files in the application",
+            xxe: "XML External Entity attack can lead to data disclosure and SSRF",
+            csrf: "Cross-Site Request Forgery allows unauthorized actions on behalf of users",
+            openRedirect: "Open Redirect vulnerability can be used for phishing attacks",
+            cmdInjection: "Command Injection allows execution of arbitrary system commands",
+            directoryTraversal: "Directory Traversal allows access to files outside intended directories",
+            ldapInjection: "LDAP Injection can lead to unauthorized access and information disclosure"
+        };
+
+        let scanResults = [];
+        let stats = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+
+        document.getElementById('scanForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            startScan();
+        });
+
+        function startScan() {
+            const targetUrl = document.getElementById('targetUrl').value;
+            const emailAlert = document.getElementById('emailAlert').value;
+            const scanButton = document.getElementById('scanButton');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            // Reset results
+            scanResults = [];
+            stats = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+            updateStats();
+            document.getElementById('resultsContainer').innerHTML = '';
+
+            // Start scan
+            scanButton.disabled = true;
+            scanButton.innerHTML = '🔍 Scanning...';
+            scanButton.classList.add('scanning');
+            progressBar.style.display = 'block';
+            loadingSpinner.style.display = 'block';
+
+            // Get selected vulnerability types
+            const selectedVulns = [];
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach(checkbox => {
+                selectedVulns.push(checkbox.id);
+            });
+
+            // Simulate scan progress
+            let progress = 0;
+            const scanInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                progressFill.style.width = progress + '%';
+
+                // Randomly generate vulnerabilities during scan
+                if (Math.random() > 0.7 && selectedVulns.length > 0) {
+                    generateRandomVulnerability(targetUrl, selectedVulns);
+                }
+
+                if (progress >= 100) {
+                    clearInterval(scanInterval);
+                    completeScan(emailAlert, targetUrl);
+                }
+            }, 800);
+        }
+
+        function generateRandomVulnerability(targetUrl, selectedVulns) {
+            const vulnType = selectedVulns[Math.floor(Math.random() * selectedVulns.length)];
+            const payloads = vulnerabilityPayloads[vulnType];
+            const payload = payloads[Math.floor(Math.random() * payloads.length)];
+            
+            const severities = ['critical', 'high', 'medium', 'low', 'info'];
+            const severity = severities[Math.floor(Math.random() * severities.length)];
+
+            const vulnerability = {
+                type: vulnType,
+                severity: severity,
+                description: vulnerabilityDescriptions[vulnType],
+                payload: payload,
+                url: targetUrl + '/vulnerable-endpoint',
+                timestamp: new Date().toLocaleTimeString()
+            };
+
+            scanResults.push(vulnerability);
+            stats[severity]++;
+            updateStats();
+            addVulnerabilityToResults(vulnerability);
+        }
+
+        function addVulnerabilityToResults(vuln) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            if (scanResults.length === 1) {
+                resultsContainer.innerHTML = '';
+            }
+
+            const vulnElement = document.createElement('div');
+            vulnElement.className = `vulnerability-item ${vuln.severity}`;
+            
+            vulnElement.innerHTML = `
+                <div class="vuln-title">
+                    <span>${vuln.type.toUpperCase()} - ${vuln.description}</span>
+                    <span class="vuln-severity severity-${vuln.severity}">${vuln.severity}</span>
+                </div>
+                <div class="vuln-details">
+                    <strong>URL:</strong> ${vuln.url}<br>
+                    <strong>Detected:</strong> ${vuln.timestamp}
+                </div>
+                <div class="vuln-payload">
+                    <strong>Payload:</strong> ${vuln.payload}
+                </div>
+            `;
+
+            resultsContainer.appendChild(vulnElement);
+        }
+
+        function updateStats() {
+            document.getElementById('criticalCount').textContent = stats.critical;
+            document.getElementById('highCount').textContent = stats.high;
+            document.getElementById('mediumCount').textContent = stats.medium;
+            document.getElementById('lowCount').textContent = stats.low;
+            document.getElementById('infoCount').textContent = stats.info;
+        }
+
+        function completeScan(emailAlert, targetUrl) {
+            const scanButton = document.getElementById('scanButton');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            // Complete scan
+            scanButton.disabled = false;
+            scanButton.innerHTML = '🚀 Start Security Scan';
+            scanButton.classList.remove('scanning');
+            loadingSpinner.style.display = 'none';
+
+            // Send email alert if configured
+            if (emailAlert && scanResults.length > 0) {
+                sendEmailAlert(emailAlert, targetUrl);
+            }
+
+            // Show completion message
+            if (scanResults.length === 0) {
+                document.getElementById('resultsContainer').innerHTML = `
+                    <div style="text-align: center; color: #27ae60; padding: 40px;">
+                        <h3>✅ No Vulnerabilities Found</h3>
+                        <p>The target appears to be secure against the tested vulnerability types.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function sendEmailAlert(emailAlert, targetUrl) {
+            const emailStatus = document.getElementById('emailStatus');
+            
+            // Simulate email sending
+            setTimeout(() => {
+                const totalVulns = scanResults.length;
+                const criticalHighCount = stats.critical + stats.high;
+                
+                emailStatus.className = 'email-status email-success';
+                emailStatus.style.display = 'block';
+                emailStatus.innerHTML = `
+                    📧 Email alert sent to ${emailAlert}<br>
+                    Summary: ${totalVulns} vulnerabilities found (${criticalHighCount} critical/high severity)
+                `;
+            }, 2000);
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('SecureScan Pro initialized');
+        });
+    </script>
+</body>
+</html>
